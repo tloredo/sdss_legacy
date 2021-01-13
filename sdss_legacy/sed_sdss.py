@@ -80,8 +80,11 @@ __all__ = ['SED_SDSS']
 ang2u = 1.e-4
 
 # Dustmaps:
-sfd = SFDQuery()
-planck = PlanckQuery()
+try:
+    sfd = SFDQuery()
+    planck = PlanckQuery()
+except FileNotFoundError:
+    raise FileNotFoundError('Requested dustmap(s) are not installed; see README for instructions!')
 
 
 class SDSSPhotometry:
