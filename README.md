@@ -39,6 +39,27 @@ pip install -e sdss_legacy
 
 This will put links to the modules in the distribution in the current Python environments `site-packages` directory, rather than copying the modules there. With this setup, changes to the modules take effect immediately on the next import; there is no need to re-install the modified package.
 
+### Dust maps
+
+For Galactic (Milky Way) extinction corrections, `sdss_legacy` uses the [dust_extinction](https://dust-extinction.readthedocs.io/en/stable/) and [dustmaps](https://dustmaps.readthedocs.io/en/latest/index.html) packages. Dust maps need to be fetched and stored in a suitable location before using the `dustmaps` package (and thus before using `sdss_legacy`). For detailed instructions, see:
+
+> [Installation — dustmaps documentation](https://dustmaps.readthedocs.io/en/latest/installation.html)
+
+Specifically for `sdss_legacy`, the SFD and Planck maps are needed.  These may be fetched (from the Harvard Dataverse research repository) by running the following commands in an IPython session, with `PATH-TO-MAPS` pointing to a convenient location for the map FITS
+files:
+```python
+from dustmaps.config import config
+config['data_dir'] = 'PATH-TO-MAPS'
+
+import dustmaps.sfd  # ~134 MB
+dustmaps.sfd.fetch()
+
+import dustmaps.planck  # ~1.6 GB
+dustmaps.planck.fetch()
+```
+These require ~1.7 GB of space.  The Planck map may take a while to download;
+the connection ran at 0.3 to 1 MB/s during development.˜
+
 ### Object catalog data storage and configuration file
 
 This package requires access to two large data files storing data from SDSS CasJobs SQL queries collecting metadata, photometric data, and spectroscopic redshift estimates for the MGS and QSO samples, in Feather format.  The path to a directory holding these files must be specified in a configuration file.  By default, the configuration file path is:
@@ -85,28 +106,6 @@ Information about bulk data downloads is available here: [Bulk Data Downloads | 
 
 Note that this is the "Lite" archive, providing only the accumulated spectrum for an object, not the spectra in the multiple exposures used to make the coadded spectrum.
 
-### Dust maps
-
-For Galactic (Milky Way) extinction corrections, `sdss_legacy` uses the [dust_extinction](https://dust-extinction.readthedocs.io/en/stable/) and [dustmaps](https://dustmaps.readthedocs.io/en/latest/index.html) packages. Dust maps need to be fetched and stored in a suitable location before using the `dustmaps` package; see:
-
-> [Installation — dustmaps documentation](https://dustmaps.readthedocs.io/en/latest/installation.html)
-
-The SFD and Planck maps are needed.  These were fetched (from the Harvard
-Dataverse research repository) by running the following commands in an IPython
-session, with `PATH-TO-MAPS` pointing to a convenient location for the map FITS
-files:
-```python
-from dustmaps.config import config
-config['data_dir'] = 'PATH-TO-MAPS'
-
-import dustmaps.sfd  # ~134 MB
-dustmaps.sfd.fetch()
-
-import dustmaps.planck  # ~1.6 GB
-dustmaps.planck.fetch()
-```
-These require ~1.7 GB of space.  The Planck map may take a while to download;
-the connection ran at 0.3 to 1 MB/s during development.
 
 ---
 
@@ -176,7 +175,7 @@ Two convenience functions display summaries of an object's data in your default 
 obj.xp()
 ```
 
-will open a new tab displaying the [SDSS DR16 Object Explorer](http://skyserver.sdss.org/dr16/en/tools/explore/Summary.aspx?) page for the object, showing an image thumbnail, a plot of the spectrum, and some key summary data.
+will open a new tab displaying the [SDSS DR16 Object Explorer](http://skyserver.sdss.org/dr16/en/tools/explore/Summary.aspx?) page for the object, showing an image thumbnail, a plot of the spectrum, and some key summary data.
 
 ```python
 obj.cutout()
@@ -226,7 +225,7 @@ The `SED_SDSS` class provides capability for correcting a spectrum for Galactic 
 
 These two quantities are tied together: along a line of sight through dust of homogeneous composition, the more dust one looks through (i.e., the greater the distance), the larger the attenuation, and the larger the reddening. The relationship between the two depends on the composition of dust along the line of sight, which determines the **extinction curve**: the attenuation as a function of wavelength. Empirically, curves of extinction vs. wavelength for different line-of-sight compositions do not cross and are nearly monotonic in wavelength. They thus can be labeled by a single parameter, conventionally taken to be the *reddening parameter*, $R_V$, with $R_V \equiv A_V/E_{B-V}$. A typical value is $R_V = 3.1$, i.e., dust producing a color excess of about a third of of the $V$ band attenuation. (Some studies find that extinction laws are better described using two parameters to specify the shape.)
 
-Astronomers so far have not produced definitive measurements and parameterizations of Galactic extinction. `sdss_legacy` users have to make two choices in order to correct a spectrum for extinction, specifying how to handle direction- and wavelength-dependence of extinction.
+Astronomers so far have not produced definitive measurements and parameterizations of Galactic extinction. `sdss_legacy` users have to make two choices in order to correct a spectrum for extinction, specifying how to handle direction- and wavelength-dependence of extinction.
 
 * **Direction dependence:** A *dust map* provides an estimate of the amount of dust in a particular direction, measured by the color excess, $E_{B-V}$. `SED_SDSS` instances support two choices of dust maps: the Schlegel, Finkbeiner & Davis (1998, 2011) or **SFD** map, and the map measured by the **Planck** mission.
 * **Wavelength dependence:**  `SED_SDSS` instances support two choices of *extinction curve families*, each using $R_V$ to parameterize the curves within the family: the Cardelli, Clayton, and Mathis (1989) **CCM89** family, and the Fitzpatrick (1999, 2004) **F99** family. 
