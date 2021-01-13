@@ -7,12 +7,17 @@ import os
 import urllib.request
 import webbrowser
 
+import numpy as np
 import pandas as pd
 
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from .sed_sdss import SED_SDSS
+
+
+class BadRecordError(ValueError):
+    pass
 
 
 class SpecPhotoObject:
@@ -44,6 +49,11 @@ class SpecPhotoObject:
         self.row = row
 
         # Spectrum data info:
+        # CasJobs returns an occasional bad record; one sign is that
+        # .plate is not an int; catch this.
+        if type(row.plate) is not np.int64:
+            raise BadRecordError('Bad row for bestObjID {}:\n'
+                                 '<row>\n{}\n</row>\n'.format(id, row))
         self.plate_dir = os.path.join(spec_dir,
                                       '{:0>4d}'.format(row.plate))
         self.sed_fits_name = 'spec-{:0>4d}-{:0>5d}-{:0>4d}.fits'.format(
