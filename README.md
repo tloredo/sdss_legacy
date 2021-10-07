@@ -58,7 +58,7 @@ import dustmaps.planck  # ~1.6 GB
 dustmaps.planck.fetch()
 ```
 These require ~1.7 GB of space.  The Planck map may take a while to download;
-the connection ran at 0.3 to 1 MB/s during development.˜
+the connection ran at 0.3 to 1 MB/s during development.
 
 ### Object catalog data storage and configuration file
 
@@ -73,7 +73,7 @@ export SDSS_GAL_QSO_CONFIG='/Users/Me/Configs/sdss.config'
 ```
 If the config file does not exist when the package is loaded, it is created with default paths for the data files in place, and Python will complain if the files are not found.  Edit the config file to use the correct paths (the user home directory alias "~/" may be used in path names).
 
-A good way to setup a config file with the proper format is to install the package, and then just import it in a `python` or `ipython` session:
+A good way to set up a config file with the proper format is to install the package, and then just import it in a `python` or `ipython` session:
 
 ```python
 import sdss_legacy
@@ -175,7 +175,7 @@ Two convenience functions display summaries of an object's data in your default 
 obj.xp()
 ```
 
-will open a new tab displaying the [SDSS DR16 Object Explorer](http://skyserver.sdss.org/dr16/en/tools/explore/Summary.aspx?) page for the object, showing an image thumbnail, a plot of the spectrum, and some key summary data.
+will open a new tab displaying the [SDSS DR16 Object Explorer](http://skyserver.sdss.org/dr16/en/tools/explore/Summary.aspx?) page for the object, showing an image thumbnail, a plot of the spectrum, and some key summary data (mnemonic: "xp" = "ExPlore").
 
 ```python
 obj.cutout()
@@ -189,7 +189,7 @@ will open a new tab displaying a cutout of the sky in the vicinity of the object
 
 A `SpecPhotoObject` instance has a `sed` attribute providing access to spectral data measuring the spectral energy distribution (SED) via an instance of the `SED_SDSS` class. This attribute is defined "lazily;" it is not defined until it is used, so the spectrum FITS file is neither fetched from SDSS.org (if not already downloaded) nor loaded if the user does not access spectral data.
 
-The `sed` instance provides attribute access to a large number of quantities loaded from the spectrum FITS file. Some of the quantities are redundant with table data, but possibly useful for cross-checking (the `SED_SDSS` is designed to be used separately from the catalogs, in which case many attributes may be more useful). The spectrum itself, with measurement errors, is available via:
+The `sed` instance provides attribute access to a large number of quantities loaded from the spectrum FITS file. Some of the quantities are redundant with table data, but possibly useful for cross-checking (the `SED_SDSS` class is designed to be usable separately from the catalogs, in which case many attributes may be more useful). The spectrum itself, with measurement errors, is available via:
 
 ```python
 sed.wmin, sed.wmax  # wavelength range (anstroms)
@@ -199,7 +199,7 @@ sed.flux  # array with observer-frame SED in flux units
 sed.ivar  # array of inverse variances for flux measurement errors
 ```
 
-The SDSS pipeline performs a number of analyses of the spectrum, with results available in the FITS file, many accessible via attributes, including:
+The SDSS pipeline performs a number of analyses of the spectrum, with results available in the FITS file, many accessible via attributes, including the following:
 
 * Redshift (`z` and `z_err`) and velocity dispersion (`vdisp` and `vdisp_err`) are available (duplicating catalog data).
 * `lines` is a list of `SpecLine` instances containing results of fits of spectral lines, including these attributes:
@@ -221,7 +221,7 @@ The `SED_SDSS` class provides capability for correcting a spectrum for Galactic 
 
 * **Monochromatic attenuation:** Extinction *dims* a spectrum. $A_V$ is the attenuation due to extinction at the effective wavelength of the $V$ band, in magnitudes (positive changes in magnitude correspond to dimming).
 
-* **Color excess:** Extinction *reddens* a spectrum: the attenuation is largely stronger at short (blue) wavelengths than at long (red) wavelengths, making objects appear redder than they actually are. The color excess measures how extinction distorts the *shape* of a spectrum. The conventional measure is the (positive) color excess induced in the $B-V$ color; this is denoted $E(B-V)$ or $E_{B-V}$. Extinction changes the $B-V$ color to $(B+A_B) - (V+A_V)$, so  $E_{B-V} = A_B - A_V$.
+* **Color excess:** Extinction *reddens* a spectrum: the attenuation tends to be stronger at short (blue) wavelengths than at long (red) wavelengths, making objects appear redder than they actually are. The color excess measures how extinction distorts the *shape* of a spectrum. The conventional measure is the (positive) color excess induced in the $B-V$ color; this is denoted $E(B-V)$ or $E_{B-V}$. Extinction changes the $B-V$ color to $(B+A_B) - (V+A_V)$, so  $E_{B-V} = A_B - A_V$.
 
 These two quantities are tied together: along a line of sight through dust of homogeneous composition, the more dust one looks through (i.e., the greater the distance), the larger the attenuation, and the larger the reddening. The relationship between the two depends on the composition of dust along the line of sight, which determines the **extinction curve**: the attenuation as a function of wavelength. Empirically, curves of extinction vs. wavelength for different line-of-sight compositions do not cross and are nearly monotonic in wavelength. They thus can be labeled by a single parameter, conventionally taken to be the *reddening parameter*, $R_V$, with $R_V \equiv A_V/E_{B-V}$. A typical value is $R_V = 3.1$, i.e., dust producing a color excess of about a third of of the $V$ band attenuation. (Some studies find that extinction laws are better described using two parameters to specify the shape.)
 
@@ -232,13 +232,13 @@ Astronomers so far have not produced definitive measurements and parameterizatio
 
 Additionally, one must specify a value for the $R_V$ parameter identifying which curve to use in a particular family.
 
-`SED_SDSS` instances provide a `dereddened(Rv=3.1, curves='CCM89', map='SFD')` method that returns a copy of the `flux` and `ivar` data, corrected for Galactic extinction using the specified choices of $R_V$, curve family, and map. The adjusted flux is the measured flux divided by a wavelength-dependent*extinguishing factor* (or *extinction factor*). The adjusted inverse variance is the raw value multiplied by the extinguishing factor squared (this may not be accurate, depending on how much of the measurement error is due to operations like background subtraction). Adding a `factor=True` argument will produce a third return value, the array of extinguishing factors (for each wavelength).
+`SED_SDSS` instances provide a `dereddened(Rv=3.1, curves='CCM89', map='SFD')` method that returns a copy of the `flux` and `ivar` data, corrected for Galactic extinction using the specified choices of $R_V$, curve family, and map. The adjusted flux is the measured flux divided by a wavelength-dependent *extinguishing factor* (or *extinction factor*). The adjusted inverse variance is the raw value multiplied by the extinguishing factor squared (this may not be accurate, depending on how much of the measurement error is due to operations like background subtraction). Adding a `factor=True` argument will produce a third return value, the array of extinguishing factors (for each wavelength).
 
 
 
 ## Example script
 
-Copy `ExtinctionExpt.py` from the `scripts` folder to a location outside of the distribution, and execute it with `ipython -i ExtinctionExpt.py` (so iPython becomes interactive after completion, leaving plot windows open). This scripts loads the catalogs, collects data for 10 MGS galaxies and 10 QSOs, and then makes some plots:
+Copy `ExtinctionExpt.py` from the `scripts` folder to a location outside of the distribution, and execute it with `ipython -i ExtinctionExpt.py` (the `-i` option makes iPython stay interactive after executing the script, leaving plot windows open). This scripts loads the catalogs, collects data for 10 MGS galaxies and 10 QSOs, and then makes some plots:
 
 * A plot showing spectra of 10 MGS galaxies on a common set of axes.
 * 3 plots (2 for galaxies, 1 for a QSO), each with 4 panels showing extinction-corrected SEDs for the possible choices of `(curves, map)`. In each panel, a gray line shows the adjusted spectrum, and vertical error bars dip from the curve to the unadjusted spectrum (zoom in to see the error bars more clearly). A dark red curve (against the right axis) shows the extinction factor (the adjusted SED is the measured SED *divided* by this factor).
@@ -368,5 +368,4 @@ WHERE
 ## License
 
 This project is Copyright (c) 2020, 2021 by Tom Loredo and David Kent and licensed under the terms of the BSD 3-Clause license; see the included [LICENSE.txt](LICENSE.txt) file.
-
 
