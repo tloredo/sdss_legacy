@@ -29,6 +29,7 @@ directory holding the plate directories and FITS files.
 
 
 2021-01-02:  Created by Tom Loredo, consolidating earlier experiments
+2022-11-08:  Major update to use updated SDSS queries for MGS/LRGs/QSOs
 """
 
 import sys
@@ -38,7 +39,7 @@ from configparser import ConfigParser
 from .catalog import SpecPhotoCatalog
 
 
-__all__ = ['mgs', 'qso']
+__all__ = ['mgs', 'lrg', 'qso']
 
 
 # Have not checked earlier versions, but no obvious problems for 3.6.
@@ -53,7 +54,7 @@ if sys.version_info < tuple((int(val) for val in __minimum_python_version__.spli
     raise UnsupportedPythonError("sdss_legacy does not support Python < {}".format(__minimum_python_version__))
 
 
-def find_data():
+def find_data(deprecated=False):
     """
     Use the config file to find the data file paths and verify the files exist.
 
@@ -61,14 +62,19 @@ def find_data():
     the default config file location, or the path in the SDSS_GAL_QSO_CONFIG
     environment variable if it is defined.
     """
-    default_config_path = '~/.sdss_gal_qso.config'
-    default_gal_path = '~/SDSS_Gal_QSO_Data/Spec_Photo_Gal.feather'
-    default_qso_path = '~/SDSS_Gal_QSO_Data/Spec_Photo_QSO.feather'
+    default_config_path = '~/.sdss_legacy.config'
+    # Paths for tables from deprecated queries, for backwards compatibility:
+    default_gal_path = '~/SDSS_Legacy_Data/Spec_Photo_Gal.feather'
+    default_qso_old_path = '~/SDSS_Legacy_Data/Spec_Photo_QSO-old.feather'
+    # Current table paths:
+    default_mgs_path = '~/SDSS_Legacy_Data/Spec_Photo_MGS.feather'
+    default_lrg_path = '~/SDSS_Legacy_Data/Spec_Photo_LRG.feather'
+    default_qso_path = '~/SDSS_Legacy_Data/Spec_Photo_QSO.feather'
     # path to the folder of "Lite" spectrum FITS files (accum. spectra):
-    default_spec_path = '~/SDSS_Gal_QSO_Data/spec_lite/'
+    default_spec_path = '~/SDSS_Legacy_Data/spec_lite/'
 
     try:
-        config_path = os.path.expanduser(os.environ['SDSS_GAL_QSO_CONFIG'])
+        config_path = os.path.expanduser(os.environ['SDSS_LEGACY_CONFIG'])
     except KeyError:
         config_path = os.path.expanduser(default_config_path)
 
@@ -84,22 +90,46 @@ def find_data():
 
     config = ConfigParser()
     config.read(config_path)
-    gal_path = os.path.expanduser(config['DEFAULT']['Spec_Photo_Gal'])
-    qso_path = os.path.expanduser(config['DEFAULT']['Spec_Photo_QSO'])
-    spec_path = os.path.expanduser(config['DEFAULT']['Spec_Lite'])
+    mgs_path = os.path.expanduser(config['DEFAULT']['spec_photo_mgs'])
+    lrg_path = os.path.expanduser(config['DEFAULT']['spec_photo_lrg'])
+    qso_path = os.path.expanduser(config['DEFAULT']['spec_photo_qso'])
+    spec_path = os.path.expanduser(config['DEFAULT']['spec_lite'])
+    # Paths for deprecated query data:
+    gal_path = os.path.expanduser(config['DEFAULT']['spec_photo_gal'])
+    qso_old_path = os.path.expanduser(config['DEFAULT']['spec_photo_qso_old'])
 
-    # print('Galaxy data path:', gal_path)
+    # print('MGS data path:', mgs_path)
+    # print('LRG data path:', lrg_path)
     # print('QSO data path:', qso_path)
 
-    if not os.path.exists(gal_path) or not os.path.exists(qso_path):
-        raise ValueError('Gal and/or QSO data file missing!')
+    if not os.path.exists(mgs_path) or not os.path.exists(lrg_path) \
+            or not os.path.exists(qso_path):
+        raise ValueError('MGS, LRG, and/or QSO data file missing!')
 
     if not os.path.exists(spec_path):
         raise ValueError('Folder for lite spectral FITS files missing!')
 
-    return gal_path, qso_path, spec_path
+    if not deprecated:
+        return mgs_path, lrg_path, qso_path, spec_path
+    else:
+        return gal_path, qso_old_path, spec_path
 
 
-gal_path, qso_path, spec_path = find_data()
-mgs = SpecPhotoCatalog(gal_path, spec_path)
+mgs_path, lrg_path, qso_path, spec_path = find_data()
+mgs = SpecPhotoCatalog(mgs_path, spec_path)
+lrg = SpecPhotoCatalog(lrg_path, spec_path)
 qso = SpecPhotoCatalog(qso_path, spec_path)
+
+
+def deprecated_catalogs():
+    """
+    Return catalog instances for galaxy and QSO galaxies from deprecated
+    queries.  The deprecated queries included fewer fields/attributes per
+    object, and the `gal` sample did not correspond fully to the MGS.
+    """
+    gal_path, qso_old_path, spec_path = find_data(deprecated=True)
+
+    gal = SpecPhotoCatalog(gal_path, spec_path)
+    qso = SpecPhotoCatalog(qso_old_path, spec_path)
+
+    return gal, qso
