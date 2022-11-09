@@ -183,7 +183,7 @@ class SED_SDSS:
         with fits.open(fits_path) as hdus:
             hdu0 = hdus[0]  # FITS PrimaryHDU
             self.hdu0 = hdu0
-            # The SpecID is a hash of identifying data for the object and the
+            # The SpecID is a mash of identifying data for the object and the
             # pipeline software producing the FITS data; see:
             # https://www.sdss.org/dr12/spectro/spectro_basics/
             self.spec_id = hdu0.header['spec_id'].strip()  # unique object ID
@@ -411,13 +411,13 @@ class SED_SDSS:
 
     def xp(self, **kwds):
         """
-        Show the DR16 Explorer page for the target object in the default web
+        Show the DR17 Explorer page for the target object in the default web
         browser.
 
         If keyword arguments are provided, they are passed to the `webbrowser`
         module's `open` function after an Explorer URL argument.
         """
-        url = 'https://skyserver.sdss.org/dr16/en/tools/explore/' + \
+        url = 'https://skyserver.sdss.org/dr17/en/tools/explore/' + \
             'summary.aspx?sid={}&apid='.format(self.spec_id)
         if kwds:
             webbrowser.open(url, **kwds)
@@ -431,6 +431,6 @@ class SED_SDSS:
         """
         # Use default .4" pixel scale, 512x512 px.  For syntax see:
         # http://skyserver.sdss.org/dr12/en/help/docs/api.aspx
-        url = 'http://skyserver.sdss.org/dr16/SkyserverWS/ImgCutout/getjpeg?' +\
+        url = 'http://skyserver.sdss.org/dr17/SkyserverWS/ImgCutout/getjpeg?' +\
             'ra={}&dec={}&width=512&height=512&opt=SG'.format(self.ra, self.dec)
         webbrowser.open_new_tab(url)
