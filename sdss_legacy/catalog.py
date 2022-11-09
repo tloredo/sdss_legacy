@@ -20,6 +20,10 @@ class BadRecordError(ValueError):
     pass
 
 
+# TODO:  attr_map and col_map are equivalent dicts; refactor to
+# make this easier to maintain?
+
+
 class SpecPhotoObject:
     """
     Provide attribute-based access to catalog data for a single object, via
@@ -28,9 +32,9 @@ class SpecPhotoObject:
     """
 
     # URL for "lite" (accumulated, vs. mult exposure) spectrum FITS files for
-    # legacy spectra in DR16.  See bulk data download instructions:
-    # https://www.sdss.org/dr16/data_access/bulk/#OpticalSpectraPer-ObjectLiteFiles
-    spec_lite_url = 'https://data.sdss.org/sas/dr16/sdss/spectro/redux/26/spectra/lite/'
+    # legacy spectra in DR17.  See bulk data download instructions:
+    # https://www.sdss.org/dr17/data_access/bulk/#OpticalSpectraPer-ObjectLiteFiles
+    spec_lite_url = 'https://data.sdss.org/sas/dr17/sdss/spectro/redux/26/spectra/lite/'
 
     attr_map = dict(oclass='class', subclass='subClass',
                     u='modelMag_u', uErr='modelMagErr_u',
@@ -51,7 +55,9 @@ class SpecPhotoObject:
         # Spectrum data info:
         # CasJobs returns an occasional bad record; one sign is that
         # .plate is not an int; catch this.
-        if type(row.plate) is not np.int64:
+        if (type(row.plate) is not np.int64) and \
+                (type(row.plate) is not np.int16):
+            print(id, row.plate, type(row.plate))
             raise BadRecordError('Bad row for bestObjID {}:\n'
                                  '<row>\n{}\n</row>\n'.format(id, row))
         self.plate_dir = os.path.join(spec_dir,
@@ -105,13 +111,13 @@ class SpecPhotoObject:
 
     def xp(self, **kwds):
         """
-        Show the DR16 Explorer page for the target object in the default web
+        Show the DR17 Explorer page for the target object in the default web
         browser.
 
         If keyword arguments are provided, they are passed to the `webbrowser`
         module's `open` function after an Explorer URL argument.
         """
-        url = 'https://skyserver.sdss.org/dr16/en/tools/explore/' + \
+        url = 'https://skyserver.sdss.org/dr17/en/tools/explore/' + \
             'summary.aspx?sid={}&apid='.format(self.specObjID)
         if kwds:
             webbrowser.open(url, **kwds)
@@ -125,7 +131,7 @@ class SpecPhotoObject:
         """
         # Use default .4" pixel scale, 512x512 px.  For syntax see:
         # http://skyserver.sdss.org/dr12/en/help/docs/api.aspx
-        url = 'http://skyserver.sdss.org/dr16/SkyserverWS/ImgCutout/getjpeg?' +\
+        url = 'http://skyserver.sdss.org/dr17/SkyserverWS/ImgCutout/getjpeg?' +\
             'ra={}&dec={}&width=512&height=512&opt=SG'.format(self.ra, self.dec)
         webbrowser.open_new_tab(url)
 
