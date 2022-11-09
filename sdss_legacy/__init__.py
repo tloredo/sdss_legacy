@@ -130,6 +130,6 @@ def deprecated_catalogs():
     gal_path, qso_old_path, spec_path = find_data(deprecated=True)
 
     gal = SpecPhotoCatalog(gal_path, spec_path)
-    qso = SpecPhotoCatalog(qso_old_path, spec_path)
+    qso_old = SpecPhotoCatalog(qso_old_path, spec_path)
 
-    return gal, qso
+    return gal, qso_old
