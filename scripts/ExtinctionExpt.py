@@ -20,10 +20,10 @@ import matplotlib as mpl
 from matplotlib import rc
 from matplotlib.pyplot import *
 
-from sdss_legacy import mgs, qso
+from sdss_legacy import mgs, lrg, qso
 
 
-rc('figure.subplot', left=0.1, bottom=.125, top=.95, right=.95)
+rc('figure.subplot', left=0.1, bottom=.125, top=.92, right=.95)
 # rc('lines', linewidth=2.0) # doesn't affect frame lines
 rc('font', size=14)  # default for labels (not axis labels)
 rc('font', family='serif')  # default for labels (not axis labels)
@@ -41,11 +41,13 @@ ion()
 
 # Some objects to experiment with:
 gals = [mgs.ith(i) for i in range(0, 700000, 70000)]
+lrgs = [lrg.ith(i) for i in range(0, 180000, 18000)]
 qsos = [qso.ith(i) for i in range(0, 70000, 7000)]
 
 
 # Plot a set of SEDs on one figure, flux vs. log(wl).
 fig = figure(figsize=(12,6))
+title('MGS SEDs (raw)')
 xlabel(r'$\lambda$ (ang)')
 ylabel(r'$F_\lambda$ ($10^{-17}$ erg/cm$^2$/s/ang)')
 for obj in gals:
@@ -71,14 +73,21 @@ def plot_dered(axnum, sed, curves, map, Rv=3.1):
 
     aflux, aivar, fac = sed.dereddened(curves=curves, map=map, factor=True)
 
+    if sed.flux.min() < 0:
+        print(f'WARNING:  SED for {sed.bestobjid} has negative fluxes!')
+        sflux = sed.flux.clip(0)
+        aflux = aflux.clip(0)
+    else:
+        sflux = sed.flux
+
     # Using a fill between adjusted and unadjusted spectra looks wierd!
-    # fill_between(sed.lam, sed.flux, aflux)
+    # fill_between(sed.lam, sflux, aflux)
     # xscale('log')
 
     # Plot the adjusted flux, and error bars down to the raw flux.
     semilogx(sed.lam, aflux, 'k-', lw=1, alpha=.5)
-    mid = 0.5*(sed.flux + aflux)
-    hdeltas = 0.5*(aflux - sed.flux)
+    mid = 0.5*(sflux + aflux)
+    hdeltas = 0.5*(aflux - sflux)
     errorbar(sed.lam, mid, yerr=hdeltas, fmt='none', ecolor='C0', alpha=.5)
     # axhline(0, c='k', lw=1)
     y_l, y_u = ylim()
@@ -103,6 +112,7 @@ def plot_dered(axnum, sed, curves, map, Rv=3.1):
 
 
 fig = figure(figsize=(15,8))
+fig.suptitle('MGS SED corrections')
 fig.subplots_adjust(right=0.9)  # for rt axis=
 sed = gals[0].sed
 subplot(221)
@@ -115,8 +125,9 @@ subplot(224)
 plot_dered(4, sed, 'F99', 'Planck')
 
 fig = figure(figsize=(15,8))
+fig.suptitle('LRG SED corrections')
 fig.subplots_adjust(right=0.9)  # for rt axis=
-sed = gals[7].sed
+sed = lrgs[7].sed
 subplot(221)
 plot_dered(1, sed, 'CCM89', 'SFD')
 subplot(222)
@@ -127,6 +138,7 @@ subplot(224)
 plot_dered(4, sed, 'F99', 'Planck')
 
 fig = figure(figsize=(15,8))
+fig.suptitle('QSO SED corrections')
 fig.subplots_adjust(right=0.9)  # for rt axis=
 sed = qsos[3].sed
 subplot(221)
@@ -137,3 +149,8 @@ subplot(223)
 plot_dered(3, sed, 'F99', 'SFD')
 subplot(224)
 plot_dered(4, sed, 'F99', 'Planck')
+
+# Some objects to play with at the IPy prompt:
+m = gals[0]
+l = lrgs[7]
+q = qsos[3]
