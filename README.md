@@ -1,10 +1,10 @@
 # `sdss_legacy`: Access photometric and spectroscopic data from the SDSS-I/SDSS-II Legacy Survey
 
-The `sdss_legacy` package provides access to photometric and spectroscopic data (including SEDs) for the Main Galaxy Sample (MGS) and the quasi-stellar object (QSO) sample observed during the SDSS-I/SDSS-II Legacy Survey.  The MGS sample comprises 793,940 objects (mainly regular galaxies, but including some non-QSO AGNs, e.g., Seyferts); the QSO sample comprises 74,569 objects.
+The `sdss_legacy` package provides access to photometric and spectroscopic data (including SEDs) for the SDSS Main Galaxy Sample (MGS), the luminous red galaxy (LRG) sample, and the quasi-stellar object (QSO) sample observed during the SDSS-I/SDSS-II Legacy Survey.  The MGS sample comprises 678,239 objects (mainly regular galaxies, but including some non-QSO AGNs, e.g., Seyferts, and a subset of LRGs). The LRG sample comprises 187,423 objects (some in the MGS sample). The QSO sample comprises 74,389 objects.
 
-Specifically, this package accesses the Legacy data as provided by SDSS DR16. For basic information about the samples, see: [Legacy Survey Target Selection | SDSS DR16](https://www.sdss.org/dr16/algorithms/legacy_target_selection/).
+Specifically, this package accesses the Legacy data as provided by SDSS DR17 (the last data release of SDSS IV). For basic information about the samples, see: [Legacy Survey Target Selection | SDSS DR17](https://www.sdss.org/dr17/algorithms/legacy_target_selection/). Note that although these samples are "legacy" samples defined by observations taken during SDSS I/II, pipeline revisions lead to small changes in object properties and thus sample selections across data releases.
 
-The data tables used by `sdss_legacy` were created using CasJobs SQL queries building an inner join between the SDSS `SpecObj` and `PhotoObj` tables. The resulting samples are about 1% smaller than a sample with the same `WHERE` selection clause operating on just the `SpecObj` table. We have not explored how omitting the lost samples (lacking `PhotoObj` entries) may introduce or reduce bias in the samples for certain purposes. The queries are specified to include morphological summaries from the photometric pipeline, as well as various magnitudes (e.g., model-based, PSF, Petrosian), and basic spectroscopic summaries (e.g., redshift, velocity dispersion). The queries used to build the samples appear at the end of this document.
+The data tables used by `sdss_legacy` were created using CasJobs SQL queries building an inner join between the SDSS `SpecObj` and `PhotoObj` tables, and a left outer join with the `Photoz` table (providing SDSS $k$NN photo-z estimates for a subset of the objects). The resulting samples are about 1% smaller than a sample with the same `WHERE` selection clause operating on just the `SpecObj` table. We have not explored how omitting the lost samples (lacking `PhotoObj` entries) may introduce or reduce bias in the samples for certain purposes. The queries are specified to include morphological summaries from the photometric pipeline, as well as various magnitudes (e.g., model-based, PSF, Petrosian, and fiber), and basic spectroscopic summaries (e.g., redshift, velocity dispersion). The queries used to build the samples appear at the end of this document.
 
 
 
@@ -64,14 +64,17 @@ the connection ran at 0.3 to 1 MB/s during development.
 
 This package requires access to two large data files storing data from SDSS CasJobs SQL queries collecting metadata, photometric data, and spectroscopic redshift estimates for the MGS and QSO samples, in Feather format.  The path to a directory holding these files must be specified in a configuration file.  By default, the configuration file path is:
 ```
-~/.sdss_gal_qso.config
+~/.sdss_legacy.config
 ```
 
-This may be overriden by defining an `SDSS_GAL_QSO_CONFIG` environment variable containing the (full) config file path.  E.g., using the bash shell,
+This may be overriden by defining an `SDSS_LEGACY_CONFIG` environment variable containing the (full) config file path.  E.g., using the bash shell,
 ```bash
-export SDSS_GAL_QSO_CONFIG='/Users/Me/Configs/sdss.config'
+export SDSS_LEGACY_CONFIG='/Users/Me/Configs/sdss.config'
 ```
-If the config file does not exist when the package is loaded, it is created with default paths for the data files in place, and Python will complain if the files are not found.  Edit the config file to use the correct paths (the user home directory alias "~/" may be used in path names).
+If the config file does not exist when the package is loaded, it is created with default paths for the data files defined, and Python will complain if the files are not found there when requested.  Edit the config file to use the correct paths (the user home directory alias "~/" may be used in path names), or put the needed Feather-format files (and, optionally, FITS spectral data files) here:
+
+* `~/SDSS_Legacy_Data/` for Feather files with SDSS catalog data
+* `~/SDSS_Legacy_Data/spec_lite` for spectral data in FITS files
 
 A good way to set up a config file with the proper format is to install the package, and then just import it in a `python` or `ipython` session:
 
@@ -81,28 +84,31 @@ import sdss_legacy
 
 This will raise an exception about missing data files (unless you happened to install them at the default locations), but in the meantime it will create a default config file in the default location. Adjust it as necessary.
 
-For now, the two data tables are available via Dropbox:
+For Cornell PZ team users, the data tables are pre-installed on the Tabulator machine:
 
-* https://www.dropbox.com/s/f0job3ltaojpet0/Spec_Photo_Gal.feather?dl=0
-* https://www.dropbox.com/s/bz9k2jwe1nkofy9/Spec_Photo_QSO.feather?dl=0
+* Feather files in `/data/photoz/sql_queries`
+* FITS spectral data files in `/data/photoz/spec_lite`
 
-Store the files in a convenient location, and modify the config file to point to them. The Feather files were derived from gzipped CSV files produced by CasJobs; they are larger than the `csv.gz` files, but they can be loaded much more quickly (in less than a second on my i7 Mac Mini). The package loads them as Pandas dataframes; the MGS table occupies about 1 GB of memory, and the QSO table occupies about 100 MB.
+Store the files in a convenient location, and modify the config file to point to them. The Feather files were derived from FITS files produced by SQL queries submitted to CasJobs; they are smaller than the FITS files, and they can be loaded much more quickly (in about a second on my i7 Mac Mini). The package loads them as Pandas dataframes; the table dataframe sizes are (rows, memory):
 
-If needed, the `csv.gz` files are also available on Dropbox:
+* MGS: 678239 rows,
+  624.8 MB
+* LRG: 187423 rows, 171.2 MB
+* QSO: 74389 rows,
+  69.3 MB
 
-* https://www.dropbox.com/s/rzjwv649uz3mbgu/Spec_Photo_Gal.csv.gz?dl=0
-* https://www.dropbox.com/s/4hrj6b9zblceeq5/Spec_Photo_QSO.csv.gz?dl=0
+Note that there is overlap between the tables: entries with the same `specObjID` identifier appear in multiple tables.
 
 In the future we will likely move the tables to a research data repository such as Zenodo or Dataverse.
 
 
 ### Spectral data FITS file storage
 
-This package also optionally accesses spectral data for catalog objects, provided by SDSS in FITS files that are fetched from SDSS.org and copied locally as needed.  These files are organized in directories according to SDSS plate number.  The config file must specify the location of a directory holding the plate directories and FITS files. This directory can be empty; it will get populated by FITS files as they are requested. Alternatively, you may download them in bulk.
+This package also optionally accesses spectral data for catalog objects, provided by SDSS in FITS files that may be fetched from SDSS.org and copied locally as needed.  These files are organized in directories according to SDSS plate number.  The config file must specify the location of a directory holding the plate directories and FITS files. This directory can be empty; it will get populated by FITS files as they are requested. Alternatively, you may download them in bulk.
 
 Information about bulk data downloads is available here: [Bulk Data Downloads | SDSS DR16](https://www.sdss.org/dr16/data_access/bulk/). The package accesses the data via HTTP requests to this SDSS archive:
 
-> https://data.sdss.org/sas/dr16/sdss/spectro/redux/26/spectra/lite/
+> https://data.sdss.org/sas/dr17/sdss/spectro/redux/26/spectra/lite/
 
 Note that this is the "Lite" archive, providing only the accumulated spectrum for an object, not the spectra in the multiple exposures used to make the coadded spectrum.
 
@@ -117,31 +123,35 @@ Note that this is the "Lite" archive, providing only the accumulated spectrum fo
 
 Beware, in this documentation, the potential for confusion between "object" in the sense of a Python object (or instance), and "object" in the sense of an astronomical object (e.g., a galaxy or QSO).
 
-Import the `mgs` and `qso` `SpecPhotoCatalog` instances ("catalogs") from the package:
+Import the `mgs`, `lrg`,  and `qso` `SpecPhotoCatalog` instances ("catalogs") from the package:
 
 ```python
-from sdss_legacy import mgs, qso
+from sdss_legacy import mgs, lrg, qso
 ```
 
-The import will load the data tables. The `mgs` and `qso` catalogs are wrappers around Pandas dataframes. You may directly access the dataframes via `mgs.df` and `qso.df`. The easiest way to access data columns is as attributes of the catalog objects. E.g., 
+The import will load the data tables. The `mgs`, `lrg`,  and `qso` catalogs are wrappers around Pandas dataframes. You may directly access the dataframes via `mgs.df`, `lrg.df`, and `qso.df`. The easiest way to access data columns is as attributes of the catalog objects. E.g., 
 
 ```python
 mgs.z
 ```
 
-returns all of the redshifts in the MGS sample (as a Pandas `Series` object). See the SQL queries below for the available attributes.
+returns all of the redshifts in the MGS sample (as a Pandas `Series` object).
 
-Some attributes have been mapped to alternative names, to avoid namespace collisions (e.g., with Python's `class` attribute for class instances), or for convenience. For example, the `class` attribute can be accessed by using `oclass` ("object class") as its identifier:
+See the SQL queries below for the available attributes.
+
+Some attributes have been *mapped to alternative names*, to avoid namespace collisions (e.g., with Python's `class` attribute for class instances), or for convenience. For example, the SDSS `class` attribute can be accessed by using `oclass` ("object class") as its identifier:
 
 ```python
 qso.oclass
 ```
 
-`id` maps to `bestObjID` (the index attribute; see below), and `comments` maps to `comments_person`. There are also simplified identifiers for model magnitudes (the recommended magnitude type for galaxies), e.g., `mgs.u` for the *u* magnitudes, and `mgs.zmag` for the *z* magnitudes (distinguishing it from the redshift attribute, `z`); these may change.
+The Python token `id` maps to the SDSS  `bestObjID` (the index attribute; see below), and `comments` maps to the SDSS  `comments_person`. There are also simplified identifiers for model magnitudes (the recommended magnitude type for galaxies), e.g., `mgs.u` for the *u* magnitudes (and similarly for *g*, *r*, and *i*), and `mgs.zmag` for the *z* magnitudes (distinguishing it from the redshift attribute, `z`); these may change. The associated uncertainties are `mgs.uErr` (etc.) and `mgs.zmagErr` (note that this violates NumPy naming conventions, instead aiming to resemble the SDSS attribute names).
 
-Of course, the underlying dataframe can be used to access columns by name using strings, e.g., `mgs.df['class']` for the column of galaxy classes.
+Of course, the underlying dataframe can be used to access columns by SDSS name using strings, e.g., `mgs.df['class']` for the column of galaxy classes.
 
-The catalogs are indexed by the `SpecObj` `bestObjID` identifier (henceforth "ID"), which is the same as the `PhotoObj` `objID` (and different from the `SpecObj` `specObjID`). Accessing `mgs.index` or `qso.index` returns the dataframe index (as a Pandas index object).
+The catalogs are indexed by the `SpecObj`table's  `bestObjID` identifier (henceforth "ID"), which is the same as the `PhotoObj` `objID` (and different from the `SpecObj` `specObjID`). The name of this attribute reflects that it accesses photometric data for the object in the photometric catalog that "best" matches the location of the fiber used to obtain a spectrum. 
+
+Accessing `mgs.index` or `qso.index` returns the dataframe index (as a Pandas index object).
 
 
 
@@ -169,13 +179,13 @@ An object instance also has a `coord` attribute holding an instance of the Astro
 
 ### Quick looks at object data
 
-Two convenience functions display summaries of an object's data in your default web browser.
+Two convenience functions let you display summaries of an object's data in your default web browser.
 
 ```python
 obj.xp()
 ```
 
-will open a new tab displaying the [SDSS DR16 Object Explorer](http://skyserver.sdss.org/dr16/en/tools/explore/Summary.aspx?) page for the object, showing an image thumbnail, a plot of the spectrum, and some key summary data (mnemonic: "xp" = "ExPlore").
+will open a new tab displaying the [SDSS DR17 Object Explorer](http://skyserver.sdss.org/dr17/en/tools/explore/Summary.aspx?) page for the object, showing an image thumbnail, a plot of the spectrum, and some key summary data (mnemonic: "xp" = "ExPlore").
 
 ```python
 obj.cutout()
@@ -195,9 +205,11 @@ The `sed` instance provides attribute access to a large number of quantities loa
 sed.wmin, sed.wmax  # wavelength range (anstroms)
 sed.loglam  # array of observer-frame log(wavelength/1 angstrom)
 sed.lam  # array of observer-frame wavelength (angstrom)
-sed.flux  # array with observer-frame SED in flux units
+sed.flux  # array with observer-frame SED in flux units (1E-17 erg/cm^2/s/Ang)
 sed.ivar  # array of inverse variances for flux measurement errors
 ```
+
+Note that the SDSS processing makes some elements of `sed.flux` negative for some objects.
 
 The SDSS pipeline performs a number of analyses of the spectrum, with results available in the FITS file, many accessible via attributes, including the following:
 
@@ -227,7 +239,7 @@ These two quantities are tied together: along a line of sight through dust of ho
 
 Astronomers so far have not produced definitive measurements and parameterizations of Galactic extinction. `sdss_legacy` users have to make two choices in order to correct a spectrum for extinction, specifying how to handle direction- and wavelength-dependence of extinction.
 
-* **Direction dependence:** A *dust map* provides an estimate of the amount of dust in a particular direction, measured by the color excess, $E_{B-V}$. `SED_SDSS` instances support two choices of dust maps: the Schlegel, Finkbeiner & Davis (1998, 2011) or **SFD** map, and the map measured by the **Planck** mission.
+* **Direction dependence:** A *dust map* provides an estimate of the amount of dust along a line of sight out of the Galaxy in a particular direction, measured by the color excess, $E_{B-V}$. `SED_SDSS` instances support two choices of dust maps: the Schlegel, Finkbeiner & Davis (1998, 2011) or **SFD** map, and the map measured by the **Planck** mission.
 * **Wavelength dependence:**  `SED_SDSS` instances support two choices of *extinction curve families*, each using $R_V$ to parameterize the curves within the family: the Cardelli, Clayton, and Mathis (1989) **CCM89** family, and the Fitzpatrick (1999, 2004) **F99** family. 
 
 Additionally, one must specify a value for the $R_V$ parameter identifying which curve to use in a particular family.
@@ -238,12 +250,14 @@ Additionally, one must specify a value for the $R_V$ parameter identifying which
 
 ## Example script
 
-Copy `ExtinctionExpt.py` from the `scripts` folder to a location outside of the distribution, and execute it with `ipython -i ExtinctionExpt.py` (the `-i` option makes iPython stay interactive after executing the script, leaving plot windows open). This scripts loads the catalogs, collects data for 10 MGS galaxies and 10 QSOs, and then makes some plots:
+Copy `ExtinctionExpt.py` from the `scripts` folder to a location outside of the distribution, and execute it with `ipython -i ExtinctionExpt.py` (the `-i` option makes iPython stay interactive after executing the script, leaving plot windows open). This scripts loads the catalogs, collects data for 10 MGS galaxies and 10 QSOs, and then makes some plots:
 
 * A plot showing spectra of 10 MGS galaxies on a common set of axes.
-* 3 plots (2 for galaxies, 1 for a QSO), each with 4 panels showing extinction-corrected SEDs for the possible choices of `(curves, map)`. In each panel, a gray line shows the adjusted spectrum, and vertical error bars dip from the curve to the unadjusted spectrum (zoom in to see the error bars more clearly). A dark red curve (against the right axis) shows the extinction factor (the adjusted SED is the measured SED *divided* by this factor).
+* 3 plots (1 for an MGS galaxy, 1 for an LRG galaxy, 1 for a QSO), each with 4 panels showing extinction-corrected SEDs for the possible choices of `(curves, map)`. In each panel, a gray line shows the adjusted spectrum, and vertical error bars dip from the curve to the unadjusted spectrum (zoom in to see the error bars more clearly). A dark red curve (against the right axis) shows the extinction factor (the adjusted SED is the measured SED *divided* by this factor).
 
 The plots suggest that the choice of map has more impact than the choice of extinction curve family, but this is only from a cursory exploration.
+
+At the interactive prompt, the variables `m`, `l`, and `q` reference the catalog objects for the galaxies used in the plots (from the MGS, LRG, and QSO tables, resp.). You can use these to experiment with attribute access and the `xp()` and `cutout()` methods.
 
 
 
@@ -253,7 +267,109 @@ The plots suggest that the choice of map has more impact than the choice of exti
 
 ## CasJobs SQL queries
 
-The data tables used by `sdss_legacy` were generated by the following two queries (they are identical, except for the `GALAXY` and `QSO` selectors, and the output table names).
+The data tables used by `sdss_legacy` were generated by the following set of three queries (they have identical `SELECT` content, but different `WHERE` clauses and output table names). Use these queries to identify object attribute names (other than the renamed attributes identified above).
+
+```sql
+SELECT
+    -- specObj metadata:
+    CONVERT(bigint, so.specObjID) as specObjID,
+    so.fluxObjId, so.bestObjID,
+    so.sciencePrimary, so.sdssPrimary, so.legacyPrimary,
+    so.firstRelease, so.survey,
+    so.programname, so.mjd,
+    so.plate, so.fiberID, so.run2d,
+    so.ra, so.dec, so.cx, so.cy, so.cz,
+    -- specObj results:
+    so.z, so.zErr,
+    so.class, so.subClass, so.rChi2, so.DOF, so.rChi2Diff,
+    so.z_person, so.class_person, so.comments_person,
+    so.velDisp, so.velDispErr,
+    so.waveMin, so.waveMax, so.wCoverage,
+    -- Subsample membership:
+    CONVERT(bit, (so.legacy_target1 & 32)/32) as is_lrg,  -- LRG (all criteria)
+    CONVERT(bit, (so.legacy_target1 & 64)/64) as is_gal,  -- regular or LSB galaxy (mostly)
+    CONVERT(bit, (so.legacy_target1 & 128)/128) as is_lsb, -- LSB galaxy
+    CONVERT(bit, (so.legacy_target1 & 256)/256) as is_bc,  -- bright-core
+    -- PSF mag:
+    po.psfMag_r, po.psfMagErr_r, 
+    -- modelMag uses best of deV or exp profiles (max like in r band):
+    po.modelMag_u, modelMagErr_u,
+    po.modelMag_g, modelMagErr_g, 
+    po.modelMag_r, modelMagErr_r,
+    po.modelMag_i, modelMagErr_i, 
+    po.modelMag_z, modelMagErr_z,
+    -- deV profile params:
+    po.deVMag_u, po.deVMagErr_u, po.deVRad_u, po.deVAB_u,
+    po.deVMag_g, po.deVMagErr_g, po.deVRad_g, po.deVAB_g,
+    po.deVMag_r, po.deVMagErr_r, po.deVRad_r, po.deVAB_r,
+    po.deVMag_i, po.deVMagErr_i, po.deVRad_i, po.deVAB_i,
+    po.deVMag_z, po.deVMagErr_z, po.deVRad_z, po.deVAB_z,
+    -- exp profile params:
+    po.expMag_u, po.expMagErr_u, po.expRad_u, po.expAB_u,
+    po.expMag_g, po.expMagErr_g, po.expRad_g, po.expAB_g,
+    po.expMag_r, po.expMagErr_r, po.expRad_r, po.expAB_r,
+    po.expMag_i, po.expMagErr_i, po.expRad_i, po.expAB_i,
+    po.expMag_z, po.expMagErr_z, po.expRad_z, po.expAB_z,
+    -- r-band model likelihoods:
+    po.lnLDeV_r, po.lnLExp_r,
+    -- petroMag can be used to estimate surface brightness:
+    po.petroMag_u, po.petroMagErr_u, po.petroRad_u, po.petroR50_u, po.petroR90_u,
+    po.petroMag_g, po.petroMagErr_g, po.petroRad_g, po.petroR50_g, po.petroR90_g,
+    po.petroMag_r, po.petroMagErr_r, po.petroRad_r, po.petroR50_r, po.petroR90_r,
+    po.petroMag_i, po.petroMagErr_i, po.petroRad_i, po.petroR50_i, po.petroR90_i,
+    po.petroMag_z, po.petroMagErr_z, po.petroRad_z, po.petroR50_z, po.petroR90_z,
+    -- fiber mags, 3" for SDSS spectrograph, 2" for BOSS:
+    po.fiberMag_u, fiberMagErr_u, po.fiberMag_g, fiberMagErr_g, 
+    po.fiberMag_r, fiberMagErr_r, po.fiberMag_i, fiberMagErr_i, 
+    po.fiberMag_z, fiberMagErr_z,
+    po.fiber2Mag_u, fiber2MagErr_u, po.fiber2Mag_g, fiber2MagErr_g, 
+    po.fiber2Mag_r, fiber2MagErr_r, po.fiber2Mag_i, fiber2MagErr_i, 
+    po.fiber2Mag_z, fiber2MagErr_z,
+    -- photo extinction corrections:
+    po.extinction_u, po.extinction_g, po.extinction_r,
+    po.extinction_i, po.extinction_z,
+    -- spec synthetic mags (direct, not template-based; nanomaggies):
+    so.spectroFlux_u, so.spectroFluxIvar_u, 
+    so.spectroFlux_g, so.spectroFluxIvar_g, 
+    so.spectroFlux_r, so.spectroFluxIvar_r, 
+    so.spectroFlux_i, so.spectroFluxIvar_i, 
+    so.spectroFlux_z, so.spectroFluxIvar_z,
+    -- photo-z:
+    ISNULL(pz.z, -1) as z_p,
+    ISNULL(pz.zErr, -1) as z_p_err,
+    ISNULL(pz.nnCount, -1) as z_p_nn,
+    ISNULL(pz.photoErrorClass, -1) as z_p_err_class
+
+-- For MGS:
+INTO mydb.Spec_Photo_MGS
+FROM SpecObj AS so
+    JOIN PhotoObj AS po ON po.objID = so.bestObjID
+    LEFT OUTER JOIN Photoz pz ON (pz.objID = so.bestObjID)
+WHERE
+    so.legacyPrimary = 1 AND so.zWarning = 0 AND so.class = 'GALAXY' -- gals w/ good spec
+    AND (so.legacy_target1 & (64 | 128 | 256)) > 0  -- MGS
+
+-- For LRGs:
+INTO mydb.Spec_Photo_LRG
+FROM SpecObj AS so
+    JOIN PhotoObj AS po ON po.objID = so.bestObjID
+    LEFT OUTER JOIN Photoz pz ON (pz.objID = so.bestObjID)
+WHERE
+    so.legacyPrimary = 1 AND so.zWarning = 0 AND so.class = 'GALAXY' -- gals w/ good spec
+    AND (so.legacy_target1 & 32) > 0  -- LRGs
+
+-- For QSOs:
+INTO mydb.Spec_Photo_QSO
+FROM SpecObj AS so
+    JOIN PhotoObj AS po ON po.objID = so.bestObjID
+    LEFT OUTER JOIN Photoz pz ON (pz.objID = so.bestObjID)
+WHERE
+    so.legacyPrimary = 1 AND so.zWarning = 0 AND so.class = 'QSO'  -- QSOs w/ good spec
+```
+
+
+
+The **deprecated** `gal` and `qso-old` tables were generated by this set of queries:
 
 ```sql
 SELECT
@@ -302,11 +418,20 @@ SELECT
     -- extinction corrections:
     po.extinction_u, po.extinction_g, po.extinction_r,
     po.extinction_i, po.extinction_z
+
+-- For gal:
 INTO mydb.Spec_Photo_Gal
 FROM SpecObj AS so
     JOIN PhotoObj AS po ON so.bestObjID = po.objID
 WHERE
     so.legacyPrimary = 1 AND so.zWarning = 0 AND so.class = 'GALAXY'
+
+-- For qso-old:
+INTO mydb.Spec_Photo_QSO_old
+FROM SpecObj AS so
+    JOIN PhotoObj AS po ON so.bestObjID = po.objID
+WHERE
+    so.legacyPrimary = 1 AND so.zWarning = 0 AND so.class = 'QSO'
 ```
 
 ```sql
