@@ -4,7 +4,7 @@ The `sdss_legacy` package provides access to photometric and spectroscopic data 
 
 Specifically, this package accesses the Legacy data as provided by SDSS DR17 (the last data release of SDSS IV). For basic information about the samples, see: [Legacy Survey Target Selection | SDSS DR17](https://www.sdss.org/dr17/algorithms/legacy_target_selection/). Note that although these samples are "legacy" samples defined by observations taken during SDSS I/II, pipeline revisions lead to small changes in object properties and thus sample selections across data releases.
 
-The data tables used by `sdss_legacy` were created using CasJobs SQL queries building an inner join between the SDSS `SpecObj` and `PhotoObj` tables, and a left outer join with the `Photoz` table (providing SDSS $k$NN photo-z estimates for a subset of the objects). The resulting samples are about 1% smaller than a sample with the same `WHERE` selection clause operating on just the `SpecObj` table. We have not explored how omitting the lost samples (lacking `PhotoObj` entries) may introduce or reduce bias in the samples for certain purposes. The queries are specified to include morphological summaries from the photometric pipeline, as well as various magnitudes (e.g., model-based, PSF, Petrosian, and fiber), and basic spectroscopic summaries (e.g., redshift, velocity dispersion). The queries used to build the samples appear at the end of this document.
+The data tables used by `sdss_legacy` were created using CasJobs SQL queries building an inner join between the SDSS `SpecObj` and `PhotoObj` tables, and a left outer join with the `Photoz` table (providing SDSS $k$NN photo-z estimates for a subset of the objects). The resulting samples are about 1% smaller than samples with the same `WHERE` selection clause operating on just the `SpecObj` table. We have not explored how omitting the lost samples (lacking `PhotoObj` entries) may introduce or reduce bias in the samples for certain purposes. The queries are specified to include morphological summaries from the photometric pipeline, as well as various magnitudes (e.g., model-based, PSF, Petrosian, and fiber), and basic spectroscopic summaries (e.g., redshift, velocity dispersion). The queries used to build the samples appear at the end of this document.
 
 
 
@@ -18,14 +18,20 @@ The data tables used by `sdss_legacy` were created using CasJobs SQL queries bui
 
 This package is being developed using the following `conda` environment; use the package in a similar environment:
 ```bash
-$ conda create --name py38astro python=3.8 anaconda
+$ conda create --name py310astro -c conda-forge -c defaults ipython scipy matplotlib \
+  h5py beautifulsoup4 html5lib bleach pandas sortedcontainers \
+  pytz setuptools mpmath bottleneck jplephem asdf pyarrow colorcet
+$ conda activate py310astro
+$ pip install synphot
 $ pip install dust_extinction
 $ pip install dustmaps
 $ pip install astroquery
-$ pip install synphot  # not yet required
+$ pip install speclite
 ```
 
-The package may be installed using `pip` and the path to the distribution (i.e., the directory containing this README and the `setup.py` file). E.g., from within a directory containing the distribution:
+(The `conda create` command defines a basic environment for AstroPy, used for FITS file access; this environment definition supplements the basic AstroPhy requirements with `ipython`.)
+
+The `sdss_legacy` package may be installed using `pip` and the path to the distribution (i.e., the directory containing this README and the `setup.py` file). E.g., from within a directory containing the distribution:
 
 ```bash
 pip install sdss_legacy
@@ -106,7 +112,7 @@ In the future we will likely move the tables to a research data repository such 
 
 This package also optionally accesses spectral data for catalog objects, provided by SDSS in FITS files that may be fetched from SDSS.org and copied locally as needed.  These files are organized in directories according to SDSS plate number.  The config file must specify the location of a directory holding the plate directories and FITS files. This directory can be empty; it will get populated by FITS files as they are requested. Alternatively, you may download them in bulk.
 
-Information about bulk data downloads is available here: [Bulk Data Downloads | SDSS DR16](https://www.sdss.org/dr16/data_access/bulk/). The package accesses the data via HTTP requests to this SDSS archive:
+Information about bulk data downloads is available here: [Bulk Data Downloads | SDSS DR17](https://www.sdss.org/dr17/data_access/bulk/). The package accesses the data via HTTP requests to this SDSS archive:
 
 > https://data.sdss.org/sas/dr17/sdss/spectro/redux/26/spectra/lite/
 
@@ -229,13 +235,13 @@ Quite a few other quantities are loaded from the FITS file; see the `sed_sdss.py
 
 ### Galactic extinction corrections for SEDs
 
-The `SED_SDSS` class provides capability for correcting a spectrum for Galactic extinction. Dust and gas in the Galaxy attenuates light from extragalactic objects in a direction- and wavelength-dependent manner. The behavior has been measured, and can largely be described with two empirically identified parameters:
+The `SED_SDSS` class provides capability for correcting a spectrum for Galactic extinction. Dust and gas in the Galaxy attenuates light from extragalactic objects in a direction- and wavelength-dependent manner. The behavior has been measured, and the attenuation for a particular object can largely be described with two empirically identified parameters:
 
-* **Monochromatic attenuation:** Extinction *dims* a spectrum. $A_V$ is the attenuation due to extinction at the effective wavelength of the $V$ band, in magnitudes (positive changes in magnitude correspond to dimming).
+* **Monochromatic attenuation:** Extinction *dims* a spectrum. $A_V$ is the *attenuation* due to extinction at the effective wavelength of the $V$ band, in magnitudes (positive changes in magnitude correspond to dimming).
 
-* **Color excess:** Extinction *reddens* a spectrum: the attenuation tends to be stronger at short (blue) wavelengths than at long (red) wavelengths, making objects appear redder than they actually are. The color excess measures how extinction distorts the *shape* of a spectrum. The conventional measure is the (positive) color excess induced in the $B-V$ color; this is denoted $E(B-V)$ or $E_{B-V}$. Extinction changes the $B-V$ color to $(B+A_B) - (V+A_V)$, so  $E_{B-V} = A_B - A_V$.
+* **Color excess:** Extinction *reddens* a spectrum: the attenuation tends to be stronger at short (blue) wavelengths than at long (red) wavelengths, making objects appear redder than they actually are. The *color excess* measures how extinction distorts the *shape* of a spectrum. The conventional measure is the (positive) color excess induced in the $B-V$ color; this is denoted $E(B-V)$ or $E_{B-V}$. Extinction changes the $B-V$ color to $(B+A_B) - (V+A_V)$, so  $E_{B-V} = A_B - A_V$.
 
-These two quantities are tied together: along a line of sight through dust of homogeneous composition, the more dust one looks through (i.e., the greater the distance), the larger the attenuation, and the larger the reddening. The relationship between the two depends on the composition of dust along the line of sight, which determines the **extinction curve**: the attenuation as a function of wavelength. Empirically, curves of extinction vs. wavelength for different line-of-sight compositions do not cross and are nearly monotonic in wavelength. They thus can be labeled by a single parameter, conventionally taken to be the *reddening parameter*, $R_V$, with $R_V \equiv A_V/E_{B-V}$. A typical value is $R_V = 3.1$, i.e., dust producing a color excess of about a third of of the $V$ band attenuation. (Some studies find that extinction laws are better described using two parameters to specify the shape.)
+These two quantities are tied together: along a line of sight through dust of homogeneous composition, the more dust one looks through (i.e., the greater the distance), the greater the attenuation, and the greater the reddening. The relationship between the two depends on the composition of dust along the line of sight, which determines the **extinction curve**: the attenuation as a function of wavelength. Empirically, curves of extinction vs. wavelength for different dust compositions do not cross and are nearly monotonic in wavelength. They thus can be labeled by a single parameter, conventionally taken to be the *reddening parameter*, $R_V$, with $R_V \equiv A_V/E_{B-V}$. A typical value is $R_V = 3.1$, i.e., dust producing a color excess of about a third of of the $V$ band attenuation. (Some studies find that extinction laws are better described using two parameters to specify the shape.)
 
 Astronomers so far have not produced definitive measurements and parameterizations of Galactic extinction. `sdss_legacy` users have to make two choices in order to correct a spectrum for extinction, specifying how to handle direction- and wavelength-dependence of extinction.
 
@@ -250,14 +256,14 @@ Additionally, one must specify a value for the $R_V$ parameter identifying which
 
 ## Example script
 
-Copy `ExtinctionExpt.py` from the `scripts` folder to a location outside of the distribution, and execute it with `ipython -i ExtinctionExpt.py` (the `-i` option makes iPython stay interactive after executing the script, leaving plot windows open). This scripts loads the catalogs, collects data for 10 MGS galaxies and 10 QSOs, and then makes some plots:
+Copy `ExtinctionExpt.py` from the `scripts` folder to a location outside of the distribution, and execute it with `ipython -i ExtinctionExpt.py` (the `-i` option makes iPython stay interactive after executing the script, leaving plot windows open). This scripts loads the catalogs, collects data for 10 MGS galaxies, 10 LRG galaxies, and 10 QSOs, and then makes some plots:
 
 * A plot showing spectra of 10 MGS galaxies on a common set of axes.
 * 3 plots (1 for an MGS galaxy, 1 for an LRG galaxy, 1 for a QSO), each with 4 panels showing extinction-corrected SEDs for the possible choices of `(curves, map)`. In each panel, a gray line shows the adjusted spectrum, and vertical error bars dip from the curve to the unadjusted spectrum (zoom in to see the error bars more clearly). A dark red curve (against the right axis) shows the extinction factor (the adjusted SED is the measured SED *divided* by this factor).
 
 The plots suggest that the choice of map has more impact than the choice of extinction curve family, but this is only from a cursory exploration.
 
-At the interactive prompt, the variables `m`, `l`, and `q` reference the catalog objects for the galaxies used in the plots (from the MGS, LRG, and QSO tables, resp.). You can use these to experiment with attribute access and the `xp()` and `cutout()` methods.
+At the interactive prompt (after the plots appear), the variables `m`, `l`, and `q` reference the catalog objects for the galaxies used in the plots (from the MGS, LRG, and QSO tables, resp.). You can use these to experiment with attribute access and the `xp()` and `cutout()` methods.
 
 
 
