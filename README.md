@@ -4,7 +4,7 @@ The `sdss_legacy` package provides access to photometric and spectroscopic data 
 
 Specifically, this package accesses the Legacy data as provided by SDSS DR17 (the last data release of SDSS IV). For basic information about the samples, see: [Legacy Survey Target Selection | SDSS DR17](https://www.sdss.org/dr17/algorithms/legacy_target_selection/). Note that although these samples are "legacy" samples defined by observations taken during SDSS I/II, pipeline revisions lead to small changes in object properties and thus sample selections across data releases.
 
-The data tables used by `sdss_legacy` were created using CasJobs SQL queries building an inner join between the SDSS `SpecObj` and `PhotoObj` tables, and a left outer join with the `Photoz` table (providing SDSS $k$NN photo-z estimates for a subset of the objects). The resulting samples are about 1% smaller than samples with the same `WHERE` selection clause operating on just the `SpecObj` table. We have not explored how omitting the lost samples (lacking `PhotoObj` entries) may introduce or reduce bias in the samples for certain purposes. The queries are specified to include morphological summaries from the photometric pipeline, as well as various magnitudes (e.g., model-based, PSF, Petrosian, and fiber), and basic spectroscopic summaries (e.g., redshift, velocity dispersion). The queries used to build the samples appear at the end of this document.
+The data tables used by `sdss_legacy` were created using CasJobs SQL queries building an inner join between the SDSS `SpecObj` and `PhotoObj` tables, and a left outer join with the `Photoz` table (providing SDSS $k$NN photo-z estimates for a subset of the objects). The resulting samples are about 1% smaller than samples with the same `WHERE` selection clause operating on just the `SpecObj` table. We have not explored how omitting the lost samples (lacking `PhotoObj` entries) may introduce or reduce bias in the samples for certain purposes. The queries are specified to include morphological summaries from the photometric pipeline, as well as various magnitudes (e.g., model-based, PSF, Petrosian, and fiber), and basic spectroscopic summaries (e.g., redshift, velocity dispersion). The queries used to build the samples appear at the end of this document.
 
 
 
@@ -29,9 +29,9 @@ $ pip install astroquery
 $ pip install speclite
 ```
 
-(The `conda create` command defines a basic environment for AstroPy, used for FITS file access; this environment definition supplements the basic AstroPhy requirements with `ipython`.)
+(The `conda create` command defines a basic environment for AstroPy, used for FITS file access; this environment definition supplements the basic AstroPy requirements with `ipython`.)
 
-The `sdss_legacy` package may be installed using `pip` and the path to the distribution (i.e., the directory containing this README and the `setup.py` file). E.g., from within a directory containing the distribution:
+The `sdss_legacy` package may be installed using `pip` and the path to the distribution (i.e., the directory containing this README and the `setup.py` file). E.g., from within a directory containing the distribution:
 
 ```bash
 pip install sdss_legacy
@@ -103,7 +103,7 @@ Store the files in a convenient location, and modify the config file to point to
 * QSO: 74389 rows,
   69.3 MB
 
-Note that there is overlap between the tables: entries with the same `specObjID` identifier appear in multiple tables.
+Note that there is overlap between the tables: entries with the same `specObjID` identifier appear in multiple tables.
 
 In the future we will likely move the tables to a research data repository such as Zenodo or Dataverse.
 
@@ -135,7 +135,7 @@ Import the `mgs`, `lrg`,  and `qso` `SpecPhotoCatalog` instances ("catalogs") fr
 from sdss_legacy import mgs, lrg, qso
 ```
 
-The import will load the data tables. The `mgs`, `lrg`,  and `qso` catalogs are wrappers around Pandas dataframes. You may directly access the dataframes via `mgs.df`, `lrg.df`, and `qso.df`. The easiest way to access data columns is as attributes of the catalog objects. E.g., 
+The import will load the data tables. The `mgs`, `lrg`,  and `qso` catalogs are wrappers around Pandas dataframes. You may directly access the dataframes via `mgs.df`, `lrg.df`, and `qso.df`. The easiest way to access data columns is as attributes of the catalog objects. E.g., 
 
 ```python
 mgs.z
@@ -151,7 +151,7 @@ Some attributes have been *mapped to alternative names*, to avoid namespace coll
 qso.oclass
 ```
 
-The Python token `id` maps to the SDSS  `bestObjID` (the index attribute; see below), and `comments` maps to the SDSS  `comments_person`. There are also simplified identifiers for model magnitudes (the recommended magnitude type for galaxies), e.g., `mgs.u` for the *u* magnitudes (and similarly for *g*, *r*, and *i*), and `mgs.zmag` for the *z* magnitudes (distinguishing it from the redshift attribute, `z`); these may change. The associated uncertainties are `mgs.uErr` (etc.) and `mgs.zmagErr` (note that this violates NumPy naming conventions, instead aiming to resemble the SDSS attribute names).
+The Python token `id` maps to the SDSS  `bestObjID` (the index attribute; see below), and `comments` maps to the SDSS  `comments_person`. There are also simplified identifiers for model magnitudes (the recommended magnitude type for galaxies), e.g., `mgs.u` for the *u* magnitudes (and similarly for *g*, *r*, and *i*), and `mgs.zmag` for the *z* magnitudes (distinguishing it from the redshift attribute, `z`); these may change. The associated uncertainties are `mgs.uErr` (etc.) and `mgs.zmagErr` (note that this violates NumPy naming conventions, instead aiming to resemble the SDSS attribute names).
 
 Of course, the underlying dataframe can be used to access columns by SDSS name using strings, e.g., `mgs.df['class']` for the column of galaxy classes.
 
@@ -263,7 +263,7 @@ Copy `ExtinctionExpt.py` from the `scripts` folder to a location outside of the 
 
 The plots suggest that the choice of map has more impact than the choice of extinction curve family, but this is only from a cursory exploration.
 
-At the interactive prompt (after the plots appear), the variables `m`, `l`, and `q` reference the catalog objects for the galaxies used in the plots (from the MGS, LRG, and QSO tables, resp.). You can use these to experiment with attribute access and the `xp()` and `cutout()` methods.
+At the interactive prompt (after the plots appear), the variables `m`, `l`, and `q` reference the catalog objects for the galaxies used in the plots (from the MGS, LRG, and QSO tables, resp.). You can use these to experiment with attribute access and the `xp()` and `cutout()` methods.
 
 
 
@@ -273,7 +273,7 @@ At the interactive prompt (after the plots appear), the variables `m`, `l`, and 
 
 ## CasJobs SQL queries
 
-The data tables used by `sdss_legacy` were generated by the following set of three queries (they have identical `SELECT` content, but different `WHERE` clauses and output table names). Use these queries to identify object attribute names (other than the renamed attributes identified above).
+The data tables used by `sdss_legacy` were generated by the following set of three queries (they have identical `SELECT` content, but different `WHERE` clauses and output table names). Use these queries to identify object attribute names (other than the renamed attributes identified above).
 
 ```sql
 SELECT
@@ -375,7 +375,7 @@ WHERE
 
 
 
-The **deprecated** `gal` and `qso-old` tables were generated by this set of queries:
+The **deprecated** `gal` and `qso-old` tables were generated by this set of queries:
 
 ```sql
 SELECT
